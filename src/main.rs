@@ -14,6 +14,11 @@ fn process_dir(dir_path: &String) -> Result<fs::ReadDir, io::Error> {
     }
 }
 
+fn read_plist_entries() -> Result<(), ()> {
+    println!("lala");
+    Ok(())
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let (program_name, rest_of_args) = args.split_at(1);
@@ -34,9 +39,11 @@ fn main() {
     };
 
     for entry in entries {
-        println!("got here");
+        match entry {
+            Ok(entry) => {
+                println!("{:?}", entry.path());
+            }
+            Err(_) => ()
+        }
     }
-
-
-    println!("got here");
 }
