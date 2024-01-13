@@ -1,47 +1,42 @@
-use std::env;
-use std::fs;
-use std::process;
+use std::{env, fs, process, io};
 
-fn process_args(args: &[String]) -> Result<&String, ()> {
+fn process_args(args: &[String]) -> Option<&String> {
     if args.len() == 1 {
-        return Ok(&args[0])
+        return Some(&args[0]);
     }
-    return Err(());
+    None
 }
 
-/*
-fn process_dir(dir_path: String) {
+fn process_dir(dir_path: &String) -> Result<fs::ReadDir, io::Error> {
     match fs::read_dir(dir_path) {
-        Ok(entries) => {
-            println!("Contents of directory '{}':", dir_path);
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    println!("{}", entry.file_name().to_string_lossy());
-                }
-            }
-        }
-        Err(err) => {
-            eprintln!("Error reading directory '{}': {}", dir_path, err);
-            process::exit(1);
-        }
+        Ok(entries) => Ok(entries),
+        Err(err) => Err(err)
     }
 }
- */
 
 fn main() {
-    let args: Vec<String>  = env::args().collect();
+    let args: Vec<String> = env::args().collect();
     let (program_name, rest_of_args) = args.split_at(1);
-    let dir_path = process_args(rest_of_args);
-    if let Err(err) = dir_path {
-        eprintln!("Usage: {} <dir>", program_name[0]);
-        process::exit(1);
+    let dir_path = match process_args(rest_of_args) {
+        Some(x) => x,
+        None => {
+            eprintln!("Usage: {} <dir>", program_name[0]);
+            process::exit(1);
+        }
+    };
+
+    let entries = match process_dir(dir_path) {
+        Ok(entries) => entries,
+        Err(err) => {
+            eprintln!("Error reading dir '{}': {}", dir_path, err);
+            process::exit(1);
+        }
+    };
+
+    for entry in entries {
+        println!("got here");
     }
 
-    /*
-    let entries = process_dir(dir_path);
-    if let Err(err) = entries {
-        eprintln!("Error reading directory '{}': {}", dir_path, err);
-        process::exit(1);
-    }
-    */
+
+    println!("got here");
 }
