@@ -12,12 +12,15 @@ fn process_args(args: &[String]) -> Option<&String> {
   None
 }
 
-fn fill_dir_files(output: &mut Vec<String>, dir_path: &String) {
+fn fill_dir_mkv_files(output: &mut Vec<String>, dir_path: &String) {
   let entries = fs::read_dir(dir_path).unwrap();
   for entry in entries {
-    let filepath: String = entry.unwrap().path().to_string_lossy().parse().unwrap();
-    output.push(filepath);
+    let filepath = entry.unwrap().path();
+    if filepath.extension().unwrap() == "mkv" {
+      output.push(filepath.to_string_lossy().parse().unwrap());
+    }
   }
+  output.sort()
 }
 
 fn fill_recent_played_media(output: &mut HashMap<String, i32>) {
@@ -45,8 +48,8 @@ fn main() {
     }
   };
 
-  let mut dir_files: Vec<String> = Vec::new();
-  fill_dir_files(&mut dir_files, dir_path);
+  let mut dir_mkv_files: Vec<String> = Vec::new();
+  fill_dir_mkv_files(&mut dir_mkv_files, dir_path);
 
   let mut recent_played_media: HashMap<String, i32> = HashMap::new();
   fill_recent_played_media(&mut recent_played_media);
