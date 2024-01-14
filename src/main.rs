@@ -8,6 +8,7 @@ use std::{env, fs, process};
 
 const STATE_JSON_FILE: &str = "state.json";
 const UNKNOWN_DURATION: f64 = -1.0;
+const PLAYTIME_THRESHOLD: f64 = 0.9;
 
 type VideoTimes = BTreeMap<String, f64>;
 
@@ -91,6 +92,22 @@ fn fill_video_times_from_vlc(video_times: &mut VideoTimes) -> Result<(), Box<dyn
     Ok(())
 }
 
+fn determine_next_video_file(video_times: &VideoTimes) -> Option<String> {
+    for (key, playtime) in video_times {
+        if *playtime == UNKNOWN_DURATION {
+            return Some(key.clone());
+        }
+        if let Ok(duration) = read_duration_from_video_file(key) {
+            let progress = *playtime / duration;
+            println!("{:?} has {:?}", key, progress);
+            if progress <= PLAYTIME_THRESHOLD {
+                return Some(key.clone());
+            }
+        }
+    }
+    None
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let (program_name, rest_of_args) = args.split_at(1);
@@ -111,12 +128,9 @@ fn main() {
 
     fill_video_times_from_vlc(&mut video_times).unwrap();
 
-    // let duration = read_duration_from_video_file(&video_file)?;
     write_video_times_to_file(STATE_JSON_FILE, &video_times).unwrap();
 
-    for (key, value) in &video_times {
-        println!("{:?} has {:?}", key, value);
+    if let Some(video_file) = determine_next_video_file(&video_times) {
+        println!("break here");
     }
-
-    println!("break here");
 }
