@@ -23,7 +23,7 @@ fn fill_dir_mkv_files(output: &mut Vec<String>, dir_path: &String) {
   output.sort()
 }
 
-fn fill_recent_played_media(output: &mut HashMap<String, i32>) {
+fn fill_recent_played_media(output: &mut HashMap<String, i64>) {
   let env_home = env::var("HOME").unwrap();
   let vlc_preferences_path = format!("{}/Library/Preferences/org.videolan.vlc.plist", env_home);
   let vlc_preferences = Value::from_file(vlc_preferences_path).unwrap();
@@ -33,7 +33,7 @@ fn fill_recent_played_media(output: &mut HashMap<String, i32>) {
     .as_dictionary().unwrap();
   for (key, value) in recent_played_media_dict {
     let filepath = key.trim_start_matches("file://").parse().unwrap();
-    output.insert(filepath, value.as_signed_integer().unwrap() as i32);
+    output.insert(filepath, value.as_signed_integer().unwrap());
   }
 }
 
@@ -51,7 +51,7 @@ fn main() {
   let mut dir_mkv_files: Vec<String> = Vec::new();
   fill_dir_mkv_files(&mut dir_mkv_files, dir_path);
 
-  let mut recent_played_media: HashMap<String, i32> = HashMap::new();
+  let mut recent_played_media: HashMap<String, i64> = HashMap::new();
   fill_recent_played_media(&mut recent_played_media);
 
   println!("break here");
