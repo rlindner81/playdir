@@ -1,9 +1,6 @@
-use std::{env, fs, process, io};
+use std::{env, fs, process};
 use std::collections::HashMap;
-use std::iter::Map;
-use std::ops::Add;
-use plist::{Error, Value};
-use plist::Value::Integer;
+use plist::{Value};
 
 fn process_args(args: &[String]) -> Option<&String> {
   if args.len() == 1 {
