@@ -23,7 +23,7 @@ fn write_video_times_to_file<P: AsRef<Path>>(
 ) -> Result<(), Box<dyn Error>> {
     let file = File::create(path)?;
     let mut writer = BufWriter::new(file);
-    serde_json::to_writer(&mut writer, &data)?;
+    serde_json::to_writer_pretty(&mut writer, &data)?;
     writer.flush()?;
     Ok(())
 }
@@ -82,7 +82,7 @@ fn main() {
         }
     };
 
-    let video_times = match read_video_times_from_file(STATE_JSON_FILE) {
+    let mut video_times = match read_video_times_from_file(STATE_JSON_FILE) {
         Ok(result) => result,
         _ => HashMap::new(),
     };
@@ -93,7 +93,7 @@ fn main() {
     let mut mkv_files_playtime: HashMap<String, f64> = HashMap::new();
     fill_mkv_files_playtime(&mut mkv_files_playtime, mkv_files);
 
-    write_video_times_to_file("test.json", mkv_files_playtime).unwrap();
+    write_video_times_to_file(STATE_JSON_FILE, mkv_files_playtime).unwrap();
     let mut recent_played_media: HashMap<String, f64> = HashMap::new();
     fill_recent_played_media(&mut recent_played_media);
 
