@@ -7,6 +7,7 @@ use std::path::Path;
 use std::{env, fs, process};
 
 const STATE_JSON_FILE: &str = "state.json";
+const UNKNOWN_DURATION: f64 = -1.0;
 
 type VideoTimes = BTreeMap<String, f64>;
 
@@ -35,6 +36,15 @@ fn process_args(args: &[String]) -> Option<&String> {
     None
 }
 
+fn read_duration_from_video_file<P: AsRef<Path>>(path: P) -> Result<f64, Box<dyn Error>> {
+    let container = matroska::open(&path)?;
+    let duration = match container.info.duration {
+        Some(duration) => duration.as_secs() as f64,
+        _ => UNKNOWN_DURATION,
+    };
+    Ok(duration)
+}
+
 fn fill_video_times_from_dir(
     video_times: &mut VideoTimes,
     dir_path: &String,
@@ -50,7 +60,7 @@ fn fill_video_times_from_dir(
     video_files.sort();
     for video_file in video_files {
         if !video_times.contains_key(&video_file) {
-            video_times.insert(video_file, 0.0);
+            video_times.insert(video_file, UNKNOWN_DURATION);
         }
     }
     Ok(())
@@ -70,14 +80,6 @@ fn fill_recent_played_media(output: &mut VideoTimes) {
     for (key, value) in recent_played_media_dict {
         let filepath = key.trim_start_matches("file://").parse().unwrap();
         output.insert(filepath, value.as_signed_integer().unwrap() as f64);
-    }
-}
-
-fn fill_mkv_files_playtime(output: &mut VideoTimes, mkv_files: Vec<String>) {
-    for mkv_file in mkv_files {
-        let container = matroska::open(&mkv_file).unwrap();
-        let duration = container.info.duration.unwrap().as_secs();
-        output.insert(mkv_file, duration as f64);
     }
 }
 
@@ -102,9 +104,6 @@ fn main() {
     for (key, value) in &video_times {
         println!("{:?} has {:?}", key, value);
     }
-
-    // let mut mkv_files_playtime: VideoTimes = BTreeMap::new();
-    // fill_mkv_files_playtime(&mut mkv_files_playtime, mkv_files);
 
     // write_video_times_to_file(STATE_JSON_FILE, mkv_files_playtime).unwrap();
     // let mut recent_played_media: VideoTimes = BTreeMap::new();
