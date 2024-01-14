@@ -1,6 +1,7 @@
 use std::{env, fs, process, io};
 use std::collections::HashMap;
 use std::iter::Map;
+use std::ops::Add;
 use plist::{Error, Value};
 use plist::Value::Integer;
 
@@ -11,10 +12,11 @@ fn process_args(args: &[String]) -> Option<&String> {
   None
 }
 
-fn process_dir(dir_path: &String) -> Result<fs::ReadDir, io::Error> {
-  match fs::read_dir(dir_path) {
-    Ok(entries) => Ok(entries),
-    Err(err) => Err(err)
+fn fill_dir_files(output: &mut Vec<String>, dir_path: &String) {
+  let entries = fs::read_dir(dir_path).unwrap();
+  for entry in entries {
+    let filepath: String = entry.unwrap().path().to_string_lossy().parse().unwrap();
+    output.push(filepath);
   }
 }
 
@@ -43,18 +45,12 @@ fn main() {
     }
   };
 
-  // let mut
-  // let entries = match process_dir(dir_path) {
-  //   Ok(entries) => entries,
-  //   Err(err) => {
-  //     eprintln!("Error reading dir '{}': {}", dir_path, err);
-  //     process::exit(1);
-  //   }
-  // };
+  let mut dir_files: Vec<String> = Vec::new();
+  fill_dir_files(&mut dir_files, dir_path);
 
   let mut recent_played_media: HashMap<String, i32> = HashMap::new();
   fill_recent_played_media(&mut recent_played_media);
-  println!("recent_played_media: {:?}", recent_played_media);
 
+  println!("break here");
 }
 
