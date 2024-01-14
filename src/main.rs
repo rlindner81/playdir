@@ -94,8 +94,11 @@ fn fill_video_times_from_vlc(video_times: &mut VideoTimes) -> Result<(), Box<dyn
     Ok(())
 }
 
-fn determine_next_video_file(video_times: &VideoTimes) -> Option<String> {
+fn determine_next_video_file(video_times: &VideoTimes, dir_path: &String) -> Option<String> {
     for (key, playtime) in video_times {
+        if !key.starts_with(dir_path) {
+            continue;
+        }
         if *playtime == UNKNOWN_DURATION {
             return Some(key.clone());
         }
@@ -132,7 +135,7 @@ fn main() {
 
     write_video_times_to_file(STATE_JSON_FILE, &video_times).unwrap();
 
-    let video_file = match determine_next_video_file(&video_times) {
+    let video_file = match determine_next_video_file(&video_times, dir_path) {
         Some(x) => x,
         None => {
             println!("all videos watched");
