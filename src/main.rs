@@ -10,7 +10,7 @@ use std::{env, fs, process};
 const VLC_PATH: &str = "vlc";
 const STATE_JSON_FILE: &str = "state.json";
 const UNKNOWN_DURATION: f64 = -1.0;
-const PLAYTIME_THRESHOLD: f64 = 0.9;
+const PLAYTIME_THRESHOLD: f64 = 0.85;
 
 type VideoTimes = BTreeMap<String, f64>;
 
