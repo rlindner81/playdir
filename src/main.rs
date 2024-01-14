@@ -1,11 +1,13 @@
-use plist::{Dictionary, Value};
-use std::collections::{BTreeMap, HashMap};
+use plist::Value;
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
+use std::process::Command;
 use std::{env, fs, process};
 
+const VLC_PATH: &str = "vlc";
 const STATE_JSON_FILE: &str = "state.json";
 const UNKNOWN_DURATION: f64 = -1.0;
 const PLAYTIME_THRESHOLD: f64 = 0.9;
@@ -130,7 +132,18 @@ fn main() {
 
     write_video_times_to_file(STATE_JSON_FILE, &video_times).unwrap();
 
-    if let Some(video_file) = determine_next_video_file(&video_times) {
-        println!("break here");
-    }
+    let video_file = match determine_next_video_file(&video_times) {
+        Some(x) => x,
+        None => {
+            println!("all videos watched");
+            process::exit(0);
+        }
+    };
+
+    Command::new(VLC_PATH)
+        .arg("--playlist-autostart")
+        .arg("--fullscreen")
+        .arg(&video_file)
+        .status()
+        .unwrap();
 }
