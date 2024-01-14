@@ -1,4 +1,4 @@
-use plist::Value;
+use plist::{Dictionary, Value};
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::fs::File;
@@ -20,11 +20,11 @@ fn read_video_times_from_file<P: AsRef<Path>>(path: P) -> Result<VideoTimes, Box
 
 fn write_video_times_to_file<P: AsRef<Path>>(
     path: P,
-    data: VideoTimes,
+    data: &VideoTimes,
 ) -> Result<(), Box<dyn Error>> {
     let file = File::create(path)?;
     let mut writer = BufWriter::new(file);
-    serde_json::to_writer_pretty(&mut writer, &data)?;
+    serde_json::to_writer_pretty(&mut writer, data)?;
     writer.flush()?;
     Ok(())
 }
@@ -66,21 +66,29 @@ fn fill_video_times_from_dir(
     Ok(())
 }
 
-fn fill_recent_played_media(output: &mut VideoTimes) {
-    let env_home = env::var("HOME").unwrap();
+fn fill_video_times_from_vlc(video_times: &mut VideoTimes) -> Result<(), Box<dyn Error>> {
+    let env_home = env::var("HOME")?;
     let vlc_preferences_path = format!("{}/Library/Preferences/org.videolan.vlc.plist", env_home);
-    let vlc_preferences = Value::from_file(vlc_preferences_path).unwrap();
-    let recent_played_media_dict = vlc_preferences
-        .as_dictionary()
-        .unwrap()
-        .get("recentlyPlayedMedia")
-        .unwrap()
-        .as_dictionary()
-        .unwrap();
-    for (key, value) in recent_played_media_dict {
-        let filepath = key.trim_start_matches("file://").parse().unwrap();
-        output.insert(filepath, value.as_signed_integer().unwrap() as f64);
-    }
+    let vlc_preferences = Value::from_file(vlc_preferences_path)?;
+    if let Some(recent_played_media_dict) = vlc_preferences.as_dictionary().and_then(|pref_dict| {
+        pref_dict
+            .get("recentlyPlayedMedia")
+            .and_then(|recent_media_value| recent_media_value.as_dictionary())
+    }) {
+        for (key, value) in recent_played_media_dict {
+            let video_file: String = key.trim_start_matches("file://").parse()?;
+            if video_times.contains_key(&video_file) {
+                let playtime = match value.as_signed_integer() {
+                    Some(value) => value as f64,
+                    _ => UNKNOWN_DURATION,
+                };
+                if let Some(target) = video_times.get_mut(&video_file) {
+                    *target = playtime;
+                };
+            }
+        }
+    };
+    Ok(())
 }
 
 fn main() {
@@ -101,13 +109,14 @@ fn main() {
 
     fill_video_times_from_dir(&mut video_times, dir_path).unwrap();
 
+    fill_video_times_from_vlc(&mut video_times).unwrap();
+
+    // let duration = read_duration_from_video_file(&video_file)?;
+    write_video_times_to_file(STATE_JSON_FILE, &video_times).unwrap();
+
     for (key, value) in &video_times {
         println!("{:?} has {:?}", key, value);
     }
-
-    // write_video_times_to_file(STATE_JSON_FILE, mkv_files_playtime).unwrap();
-    // let mut recent_played_media: VideoTimes = BTreeMap::new();
-    // fill_recent_played_media(&mut recent_played_media);
 
     println!("break here");
 }
