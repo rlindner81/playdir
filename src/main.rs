@@ -69,7 +69,10 @@ fn fill_video_times_from_dir(
     Ok(())
 }
 
-fn fill_video_times_from_vlc(video_times: &mut VideoTimes) -> Result<(), Box<dyn Error>> {
+fn fill_video_times_from_vlc(
+    video_times: &mut VideoTimes,
+    dir_path: &String,
+) -> Result<(), Box<dyn Error>> {
     let env_home = env::var("HOME")?;
     let vlc_preferences_path = format!("{}/Library/Preferences/org.videolan.vlc.plist", env_home);
     let vlc_preferences = Value::from_file(vlc_preferences_path)?;
@@ -80,13 +83,18 @@ fn fill_video_times_from_vlc(video_times: &mut VideoTimes) -> Result<(), Box<dyn
     }) {
         for (key, value) in recent_played_media_dict {
             let video_file: String = key.trim_start_matches("file://").parse()?;
+            if !video_file.starts_with(dir_path) {
+                continue;
+            }
             if video_times.contains_key(&video_file) {
                 let playtime = match value.as_signed_integer() {
                     Some(value) => value as f64,
                     _ => UNKNOWN_DURATION,
                 };
                 if let Some(target) = video_times.get_mut(&video_file) {
-                    *target = playtime;
+                    if playtime > *target {
+                        *target = playtime;
+                    }
                 };
             }
         }
@@ -131,7 +139,7 @@ fn main() {
 
     fill_video_times_from_dir(&mut video_times, dir_path).unwrap();
 
-    fill_video_times_from_vlc(&mut video_times).unwrap();
+    fill_video_times_from_vlc(&mut video_times, dir_path).unwrap();
 
     write_video_times_to_file(STATE_JSON_FILE, &video_times).unwrap();
 
