@@ -152,8 +152,9 @@ fn main() {
     };
 
     Command::new(VLC_PATH)
+        .arg("--no-fullscreen")
         .arg("--playlist-autostart")
-        .arg("--fullscreen")
+        .arg("--start-paused")
         .arg(&video_file)
         .status()
         .unwrap();
