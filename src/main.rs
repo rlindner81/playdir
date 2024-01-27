@@ -52,27 +52,30 @@ fn fill_video_times_from_dir(
     video_times: &mut VideoTimes,
     dir_path: &String,
 ) -> Result<(), Box<dyn Error>> {
-    let mut video_files: Vec<String> = Vec::new();
-    let mut video_files_check: HashSet<String> = HashSet::new();
+    let mut video_files: HashSet<String> = HashSet::new();
     let entries = fs::read_dir(dir_path)?;
     for entry in entries {
         let filepath = entry?.path();
         if filepath.extension() == Some("mkv".as_ref()) {
-            let value: String = filepath.to_string_lossy().parse()?;
-            video_files.push(value.clone());
-            video_files_check.insert(value.clone());
+            let video_file = filepath.to_string_lossy().parse()?;
+            video_files.insert(video_file);
         }
     }
+
+    // Remove keys representing files that are no longer present
     for (key, _) in video_times.clone() {
         if !key.starts_with(dir_path) {
             continue;
         }
-        if !video_files_check.contains(&key) {
+        if !video_files.contains(&key) {
             video_times.remove(&key);
         }
     }
-    video_files.sort();
-    for video_file in video_files {
+
+    // Add any new files in order
+    let mut video_files_ordered: Vec<String> = video_files.into_iter().collect();
+    video_files_ordered.sort();
+    for video_file in video_files_ordered {
         if !video_times.contains_key(&video_file) {
             video_times.insert(video_file, UNKNOWN_DURATION);
         }
@@ -149,10 +152,6 @@ fn main() {
     };
 
     fill_video_times_from_dir(&mut video_times, dir_path).unwrap();
-
-    // for (key, value) in &video_times {
-    //     println!("{}: {}", key, value);
-    // }
 
     fill_video_times_from_vlc(&mut video_times, dir_path).unwrap();
 
