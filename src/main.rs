@@ -1,5 +1,5 @@
 use plist::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
@@ -53,11 +53,22 @@ fn fill_video_times_from_dir(
     dir_path: &String,
 ) -> Result<(), Box<dyn Error>> {
     let mut video_files: Vec<String> = Vec::new();
+    let mut video_files_check: HashSet<String> = HashSet::new();
     let entries = fs::read_dir(dir_path)?;
     for entry in entries {
         let filepath = entry?.path();
         if filepath.extension() == Some("mkv".as_ref()) {
-            video_files.push(filepath.to_string_lossy().parse()?);
+            let value: String = filepath.to_string_lossy().parse()?;
+            video_files.push(value.clone());
+            video_files_check.insert(value.clone());
+        }
+    }
+    for (key, _) in video_times.clone() {
+        if !key.starts_with(dir_path) {
+            continue;
+        }
+        if !video_files_check.contains(&key) {
+            video_times.remove(&key);
         }
     }
     video_files.sort();
@@ -138,6 +149,10 @@ fn main() {
     };
 
     fill_video_times_from_dir(&mut video_times, dir_path).unwrap();
+
+    // for (key, value) in &video_times {
+    //     println!("{}: {}", key, value);
+    // }
 
     fill_video_times_from_vlc(&mut video_times, dir_path).unwrap();
 
