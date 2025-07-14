@@ -8,9 +8,9 @@ use std::process::Command;
 use std::{env, fs, process};
 
 const VLC_PATH: &str = "vlc";
-const STATE_JSON_FILE: &str = "state.json";
+const STATE_JSON_FILE: &str = ".playdir_state.json";
 const UNKNOWN_DURATION: f64 = -1.0;
-const PLAYTIME_THRESHOLD: f64 = 0.85;
+const PLAYTIME_THRESHOLD: f64 = 0.75;
 
 type VideoTimes = BTreeMap<String, f64>;
 
@@ -56,7 +56,7 @@ fn fill_video_times_from_dir(
     let entries = fs::read_dir(dir_path)?;
     for entry in entries {
         let filepath = entry?.path();
-        if filepath.extension() == Some("mkv".as_ref()) {
+        if filepath.extension() == Some("mkv".as_ref()) || filepath.extension() == Some("mp4".as_ref()) {
             let video_file = filepath.to_string_lossy().parse()?;
             video_files.insert(video_file);
         }
@@ -145,8 +145,9 @@ fn main() {
             process::exit(1);
         }
     };
+    let state_file = format!("{}/{}", dir_path, STATE_JSON_FILE);
 
-    let mut video_times = match read_video_times_from_file(STATE_JSON_FILE) {
+    let mut video_times = match read_video_times_from_file(&state_file) {
         Ok(result) => result,
         _ => BTreeMap::new(),
     };
@@ -155,7 +156,7 @@ fn main() {
 
     fill_video_times_from_vlc(&mut video_times, dir_path).unwrap();
 
-    write_video_times_to_file(STATE_JSON_FILE, &video_times).unwrap();
+    write_video_times_to_file(&state_file, &video_times).unwrap();
 
     let video_file = match determine_next_video_file(&video_times, dir_path) {
         Some(x) => x,
